@@ -88,20 +88,43 @@ def execute():
 
     # Split the timings into two for a class if they exist for all courses
     splitTimings(courses)
+
+    # Organize each course object with having a single date and time along with location
+    organizeDates(courses)
+
     printInfo(courses)
+
+def organizeDates(courses):
+
+    for course_name, course_obj in courses.items():
+        class_timings_list = course_obj.get_description()
+        for class_timing in class_timings_list:
+            # first space index
+            first_space_index = class_timing.index(" ")
+            date = class_timing[:first_space_index]
+            # find the days it corresponds to which returns a list of strings corresponding to the date
+            dates_list = course_obj.classMap[date]
+            time_and_location = class_timing[first_space_index+1:]
+            for day in dates_list:
+                course_obj.total_description.append([day, time_and_location])
+
+
+
 
 
 def splitTimings(courses):
+
     for course_name, course_obj in courses.items():
         # More than two timings in different location so split
         old_description = course_obj.description_1
-        print(old_description[0])
-        print("----")
-        print(old_description[0].split("\n"))
-        time.sleep(5)
+        descr_list = old_description[0].split("\n")
+        if len(descr_list) == 2:
+            course_obj.description_1 = [descr_list[0]]
+            course_obj.description_2 = [descr_list[1]]
+        else:
+            course_obj.description_1 = [descr_list[0]]
 
-
-        descr_list = old_description.split("\n")
+        
         # if(len(descr_list)==2):
         #     course_obj.description_1 = descr_list[0]
         #     course_obj.description_2 = descr_list[1]
@@ -130,14 +153,17 @@ def splitTimings(courses):
 
             
 def printInfo(courses):
-    for name, info in courses.items():
+    
+    for name, course_obj in courses.items():
         print("Course: " + name)
-        print("\tInfo: " + ''.join(info.description_1))
-        if info.description_2 != []: print("\tInfo: " + ''.join(info.description_2))
+        print("\tInfo: ")
+        print(course_obj.total_description)
 
 
 
 if __name__ == "__main__":
     execute()
+
+
 
 

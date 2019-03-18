@@ -1,4 +1,10 @@
 {
-    "python.pythonPath": "/usr/local/opt/python@2/bin/python2.7",
-    "python.linting.pylintEnabled": true
+    "python.pythonPath": "/usr/bin/python",
+    "python.linting.pylintEnabled": true,
+    "files.exclude": {
+        "**/.classpath": true,
+        "**/.project": true,
+        "**/.settings": true,
+        "**/.factorypath": true
+    }
 }

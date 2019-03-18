@@ -23,6 +23,16 @@ class Course:
         "F": ["Friday"],
     }
 
+    dateConversion = {
+        "Monday": 0,
+        "Tueday": 1,
+        "Wednesday": 2,
+        "Thursday": 3,
+        "Friday": 4,
+        "Saturday": 5,
+        "Sunday": 6,
+    }
+
     def __init__(self, nameOfCourse):
         self.name = nameOfCourse
         # So far, we have in one index: Dates & Timing & Location (Room and Campus)

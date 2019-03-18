@@ -12,23 +12,29 @@ clientsecret:
 --3hgGhZ5WngV-9q90sGfOdP
 """
 
-
 from __future__ import print_function
 
 import os
+from pytz import timezone
+import pytz
 from bs4 import BeautifulSoup
 from course import Course
+from EventJSON import event
 from selenium import webdriver
 import time
-import datetime
+from datetime import datetime, timedelta
 from googleapiclient.discovery import build
 from httplib2 import Http
 from oauth2client import file, client, tools
 
 
+FREQUENCY_PART_1 = 'RRULE:FREQ=WEEKLY;UNTIL='
+FREQUENCY_PART_2 = 'YYYYMMDD' # <- depending on semester
+SEMESTER_END_DATE = {'Fall': ['12', '15'], 'Spring': ['05','10'], 'Summer':['08','18']}
+
 def execute():
     username = "aun4"
-    password = "OTISA40481n!"
+    password = "tawakul786!"
 
     chromedriver = "/Users/anoorzaie/Downloads/chromedriver"
 
@@ -55,9 +61,9 @@ def execute():
     course_name_part_1 = '//*[@id="sidebar"]/dl['
     course_name_part_2 = ']/dt/span/b'
 
-#//*[@id="sidebar"]/dl[1]/dd/dl/dd/text()[1]
+    #//*[@id="sidebar"]/dl[1]/dd/dl/dd/text()[1]
 
-    time.sleep(4)
+    time.sleep(2)
 
     info = []
     courses = {}
@@ -85,6 +91,9 @@ def execute():
         else:
             courses[course_name].description_2.append(description1)
         course_count += 1
+    
+    # Check whether it is the fall semester or spring Semester and populate the recurrence field of Google Calendar API, depending on the semester
+    CheckSemesterAndFillRecurrenceJSON(driver)
 
     # Split the timings into two for a class if they exist for all courses
     splitTimings(courses)
@@ -92,7 +101,63 @@ def execute():
     # Organize each course object with having a single date and time along with location
     organizeDates(courses)
 
-    printInfo(courses)
+    # Convert AM/PM time to military time
+    organizeTime(courses)
+
+    # Find the start date since the date is dependent upon when the script is ran
+    convertTimeToRFC3339(courses)
+
+    #Fill JSON with classes and make service call
+
+    # Making sure everything is correct for each course
+    printInfo(courses)   
+
+def convertTimeToRFC3339(courses):
+    # https://stackoverflow.com/questions/4770297/convert-utc-datetime-string-to-local-datetime-with-python
+    # This will help out with the conversion of UTC time to EST
+    eastern_time_zone = timezone('US/Eastern')
+    for couse_name, course_obj in courses.items():
+        for description in course_obj.total_description:
+            day_int = course_obj.dateConversion[description[0]]
+            now = datetime.now()
+            schedule_day = datetime(now.year, now.month, now.day)
+            while(True):
+                if schedule_day.weekday() == day_int:
+                    break
+                    pass
+                else:
+                    schedule_day = schedule_day + timedelta(days=1)
+            start_time_list = description[1].split(":")
+            start_time_hour = int(start_time_list[0])
+            start_time_minute = int(start_time_list[1])
+
+            end_time_list = description[2].split(":")
+            end_time_hour = int(end_time_list[0])
+            end_time_minute = int(end_time_list[1])
+
+            description[0] = eastern_time_zone.localize(datetime(schedule_day.year, schedule_day.month, schedule_day.day, start_time_hour, start_time_minute))
+            datetime_end_time = eastern_time_zone.localize(datetime(schedule_day.year, schedule_day.month, schedule_day.day, end_time_hour, end_time_minute))
+            description.insert(1, datetime_end_time)
+
+
+
+
+def organizeTime(courses):
+    # Steps
+    # 1. for every course in the dictionary and for every sub-array within the total_description, extract the two dates
+    # 2. Convert those two dates into military time and append the start and end time within that subarray
+    # i.e end goal is to make the total_description look like: [['Monday', '10:20:00', '11:40:00', 'BRR-5073 Liv']]
+    for course_name, course_obj in courses.items():
+        for description in course_obj.total_description:
+            descr_list = description[1].split(" ")
+            start_time = descr_list[0] + ":00" + descr_list[1]
+            end_time = descr_list[3] + ":00" + descr_list[4]
+            start = datetime.strptime(start_time, '%I:%M:%S%p').strftime('%H:%M:%S')
+            end = datetime.strptime(end_time, '%I:%M:%S%p').strftime('%H:%M:%S')
+            location = descr_list[5] + " " + descr_list[6]
+            description[1:] = [start, end, location]
+            
+
 
 def organizeDates(courses):
 
@@ -153,11 +218,26 @@ def splitTimings(courses):
 
             
 def printInfo(courses):
-    
     for name, course_obj in courses.items():
         print("Course: " + name)
-        print("\tInfo: ")
-        print(course_obj.total_description)
+        for description in course_obj.total_description:
+            print(description)
+        print()
+
+def CheckSemesterAndFillRecurrenceJSON(driver):
+    semester_id = '//*[@id="meta"]/h2'
+    semester_text = driver.find_element_by_xpath(semester_id).text.lower()
+    current_year = str(datetime.now().year)
+    if('spring' in semester_text):
+        end_date_month = SEMESTER_END_DATE['Spring'][0]
+        end_date_day =  SEMESTER_END_DATE['Spring'][1]
+        FREQUENCY_PART_2 = current_year + end_date_month + end_date_day
+        print(FREQUENCY_PART_2)
+    if('fall' in semester_text):
+        print('fall')
+    if('summer' in semester_text):
+        print('summer')
+    print('-------------------')
 
 
 

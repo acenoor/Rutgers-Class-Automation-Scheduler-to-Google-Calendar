@@ -40,6 +40,7 @@ class Course:
         self.description_2 = []
         # [ [date, info (timing and location)], repeat of previous index but with a different date and possibly info, ...   ]
         self.total_description = []
+        self.eventsForCalendarAPI = []
 
     def get_description(self):
         return self.description_1 + self.description_2

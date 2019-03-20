@@ -11,15 +11,14 @@ clientid:
 clientsecret:
 --3hgGhZ5WngV-9q90sGfOdP
 """
-
 from __future__ import print_function
-
 import os
 from pytz import timezone
+import json
 import pytz
 from bs4 import BeautifulSoup
 from course import Course
-from EventJSON import event
+from EventJSON import event_boiler_plate
 from selenium import webdriver
 import time
 from datetime import datetime, timedelta
@@ -31,6 +30,14 @@ from oauth2client import file, client, tools
 FREQUENCY_PART_1 = 'RRULE:FREQ=WEEKLY;UNTIL='
 FREQUENCY_PART_2 = 'YYYYMMDD' # <- depending on semester
 SEMESTER_END_DATE = {'Fall': ['12', '15'], 'Spring': ['05','10'], 'Summer':['08','18']}
+
+SCOPES = 'https://www.googleapis.com/auth/calendar'
+store = file.Storage('credentials.json')
+creds = store.get()
+if not creds or creds.invalid:
+    flow = flow_from_clientsecrets('client_secret.json', SCOPES)
+    creds = tools.run_flow(flow, store, None)
+CAL = build('calendar', 'v3', http=creds.authorize(Http()))
 
 def execute():
     username = "aun4"
@@ -107,10 +114,37 @@ def execute():
     # Find the start date since the date is dependent upon when the script is ran
     convertTimeToRFC3339(courses)
 
-    #Fill JSON with classes and make service call
+    #Fill EventJSON for each course and append it to 'eventsForCalendarAPI' for each class instance
+    fillJSONForEachCourse(courses)
 
     # Making sure everything is correct for each course
-    printInfo(courses)   
+    printInfo(courses)
+
+    fileEventsIntoCalendar(courses)  
+
+def fileEventsIntoCalendar(courses):
+    print('**********************')
+    for course_name, course_obj in courses.items():
+        for event in course_obj.eventsForCalendarAPI():
+            e = CAL.events().insert(calendarId='a.noorzaie786@gmail.com', body=event).execute()
+            print('Event created: %s' % (e.get('htmlLink')))
+            print()
+
+
+def fillJSONForEachCourse(courses):
+     for course_name, course_obj in courses.items():
+        for description in course_obj.total_description:
+            print('-----------------------')
+            event = event_boiler_plate.copy()
+            event['summary'] = course_name
+            event['description'] = "Exact Location: " + description[4]
+            event['start']['dateTime'] = description[0].isoformat()
+            event['end']['dateTime'] = description[1].isoformat()
+            event['recurrence'][0] = FREQUENCY_PART_1 + FREQUENCY_PART_2
+            course_obj.eventsForCalendarAPI.append(event)
+            print(json.dumps(event, indent=4))
+            print('-------------------------')
+            
 
 def convertTimeToRFC3339(courses):
     # https://stackoverflow.com/questions/4770297/convert-utc-datetime-string-to-local-datetime-with-python
@@ -160,7 +194,6 @@ def organizeTime(courses):
 
 
 def organizeDates(courses):
-
     for course_name, course_obj in courses.items():
         class_timings_list = course_obj.get_description()
         for class_timing in class_timings_list:
@@ -228,16 +261,20 @@ def CheckSemesterAndFillRecurrenceJSON(driver):
     semester_id = '//*[@id="meta"]/h2'
     semester_text = driver.find_element_by_xpath(semester_id).text.lower()
     current_year = str(datetime.now().year)
+    global FREQUENCY_PART_2
     if('spring' in semester_text):
         end_date_month = SEMESTER_END_DATE['Spring'][0]
         end_date_day =  SEMESTER_END_DATE['Spring'][1]
         FREQUENCY_PART_2 = current_year + end_date_month + end_date_day
-        print(FREQUENCY_PART_2)
+        
     if('fall' in semester_text):
-        print('fall')
+        end_date_month = SEMESTER_END_DATE['Fall'][0]
+        end_date_day =  SEMESTER_END_DATE['Fall'][1]
+        FREQUENCY_PART_2 = current_year + end_date_month + end_date_day
     if('summer' in semester_text):
-        print('summer')
-    print('-------------------')
+        end_date_month = SEMESTER_END_DATE['Fall'][0]
+        end_date_day =  SEMESTER_END_DATE['Fall'][1]
+        FREQUENCY_PART_2 = current_year + end_date_month + end_date_day
 
 
 

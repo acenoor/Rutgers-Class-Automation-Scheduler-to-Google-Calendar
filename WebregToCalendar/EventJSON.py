@@ -1,6 +1,5 @@
-# 'RRULE:FREQ=WEEKLY;UNTIL=<YYYYMMDD>' <- depending on semester
 
-event = {
+event_boiler_plate = {
   'summary': '',
   'location': '',
   'description': '',

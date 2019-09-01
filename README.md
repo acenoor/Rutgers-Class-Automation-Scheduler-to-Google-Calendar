@@ -10,9 +10,9 @@ By running the script, you'll be able to migrate all your classes from Webreg to
 Here's an example of what running the script will do:
 
 Your WebReg Page:
-![alt text](/Users/anoorzaie/Desktop/WebregSchedule.png "Sample WebReg Page")
+![alt text](WebregSchedule.png "Sample WebReg Page")
 
 After running the script, your Google Calendar is updated:
-![alt text](/Users/anoorzaie/Desktop/WebregToCalendar.png "Sample Google Calendar Page")
+![alt text](WebregToCalendar.png "Sample Google Calendar Page")
 
 More info coming soon...
